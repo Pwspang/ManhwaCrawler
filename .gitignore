@@ -1,3 +1,5 @@
 *.webp
 *.img 
 *.pyc 
+*.jpg
+.DS_Store
