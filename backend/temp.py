@@ -1,40 +1,29 @@
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-import time 
+from ultralytics import YOLO
+from PIL import Image, ImageDraw
+import cv2
+# from transformers import AutoImageProcessor, AutoModelForObjectDetection
+from transformers import pipeline   
 
 def main():
-    driver = webdriver.Chrome()
+    model = YOLO("backend/model_weights/best.pt")
+    image = cv2.imread("backend/4.webp")
+    h, w, c = image.shape
 
-    driver.get("https://mangakakalot.com/")
-
-    driver.implicitly_wait(2)
+    results = model(
+        image,
+        # dimensions required to be multiple of 32
+        imgsz=[(h // 32) * 32, (w // 32) * 32],
+        conf=0.6,
+    )[0]
+    # save the image with bounding boxes
+    #results.save("output.jpg")
     
-    #title = driver.title 
-
-    SEARCH_TEXT = "The Story About Time"
+    images = [image[int(y1):int(y2),int(x1):int(x2)] for x1, y1, x2, y2 in results.boxes.xyxy]
     
-    # Detect if accept cookies is on screen 
-    if driver.find_element(by=By.XPATH, value="//*[contains(text(), 'We value your privacy')]"):
-        driver.find_element(by=By.XPATH, value="//*[contains(text(), 'DISAGREE')]").click()
+    # Load model directly
+    pipe = pipeline("image-to-text", model="kha-white/manga-ocr-base")
     
-    searchBox = driver.find_element(by=By.ID,  value="search_story")
-
-    searchBox.send_keys(SEARCH_TEXT)
-    
-    driver.implicitly_wait(2)
-    
-    result = driver.find_element(by=By.ID, value="search_result")
-    
-    #result_lst = result.find_elements(by=By.XPATH, value="//ul/a[@href]")
-    result_lst = result.find_elements(by=By.XPATH, value="//p[@class='search_result_row1']")
-    print(result_lst)
-    for i in result_lst:
-        print(i.text)
-    
-    
-       
-    
-    driver.quit()
+    print(pipe(Image.fromarray(images[0])))
     
 if __name__ == "__main__":
     main()

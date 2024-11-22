@@ -3,3 +3,4 @@
 *.pyc 
 *.jpg
 .DS_Store
+.env

@@ -2,7 +2,6 @@ from abc import ABC, abstractmethod
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from pathlib import Path
-# import asyncio
 import threading
 from queue import Queue  
 
@@ -11,10 +10,10 @@ class MHandler(ABC):
 
         # Config Driver
         options = webdriver.ChromeOptions()
-        # options.add_argument('--window-size=1920,1080') # Set Window Size --> This is Required when use headless
-        # options.add_argument('--headless=new')
-        # options.add_argument('log-level=3')
-        # options.add_argument("--headless=new")
+        options.add_argument('--window-size=1920,1080') # Set Window Size --> This is Required when use headless
+        options.add_argument('--headless=new')
+        options.add_argument('log-level=3')
+        options.add_argument("--headless=new")
         self._driver = webdriver.Chrome(options=options)
     
     @abstractmethod
