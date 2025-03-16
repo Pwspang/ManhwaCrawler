@@ -1,34 +1,34 @@
-FROM python:3.13.1-slim-bookworm AS python-base
+# Use a Python image with uv pre-installed
+FROM ghcr.io/astral-sh/uv:python3.13-bookworm-slim
 
-ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1 \
-    WORKDIR_PATH="/opt/python-boilerplate" \
-    VIRTUAL_ENV="/opt/python-boilerplate/.venv"
+# Install the project into `/app`
+WORKDIR /app
 
-ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+# Enable bytecode compilation
+ENV UV_COMPILE_BYTECODE=1
 
-FROM python-base AS builder-base
+# Copy from the cache instead of linking since it's a mounted volume
+ENV UV_LINK_MODE=copy
 
-COPY --from=ghcr.io/astral-sh/uv:0.5.15 /uv /bin/uv
+# Install the project's dependencies using the lockfile and settings
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    uv sync --frozen --no-install-project --no-dev
 
-WORKDIR $WORKDIR_PATH
+# Then, add the rest of the project source code and install it
+# Installing separately from its dependencies allows optimal layer caching
+ADD . /app
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen --no-dev
 
-COPY . .
+# Place executables in the environment at the front of the path
+ENV PATH="/app/.venv/bin:$PATH"
 
-RUN uv sync --frozen
+# Reset the entrypoint, don't invoke `uv`
+ENTRYPOINT []
 
-FROM builder-base AS development
-
-CMD ["python","-m", "python_boilerplate.main"]
-
-FROM python-base AS production
-
-COPY --from=builder-base $VIRTUAL_ENV $VIRTUAL_ENV
-
-WORKDIR $WORKDIR_PATH
-
-COPY ./src/ ./
-
-USER 10000
-
-CMD ["python","-m", "python_boilerplate.main"]
+# Run the FastAPI application by default
+# Uses `fastapi dev` to enable hot-reloading when the `watch` sync occurs
+# Uses `--host 0.0.0.0` to allow access from outside the container
+CMD ["uvicorn", "manhwacrawler.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

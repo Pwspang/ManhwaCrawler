@@ -1,5 +1,5 @@
-from pydantic import BaseModel 
 from enum import Enum
+
 
 class DeviceType(Enum):
     API = "API"
